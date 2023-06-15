@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/dbConfig");
+const sequelize = require("../config/dbConfig.js");
 
 const User = sequelize.define(
   "User",
@@ -7,16 +7,22 @@ const User = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      primaryKey: true,
     },
     fName: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    LName: {
+    lName: {
       type: DataTypes.STRING,
       allowNull: false,
     },
   },
-  {}
+  {
+    tableName: "users",
+    timestamps: false,
+  }
 );
 console.log(User === sequelize.model.User);
+
+module.exports = User;
