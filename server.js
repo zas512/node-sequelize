@@ -1,7 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
-const { sequelize, testConnection } = require("./models/dbModel");
+const { sequelize, testConnection } = require("./config/dbConfig");
 
 dotenv.config();
 const PORT = process.env.PORT || 8080;
