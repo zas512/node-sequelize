@@ -1,78 +1,94 @@
-const User = require("../models/dbModel");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/dbModel");
+const authenticateToken = require("../middleware/authToken");
 
-// Create a new user
-exports.createUser = async (req, res) => {
+exports.registerUser = async (req, res) => {
   try {
-    const { user_id, fName, lName } = req.body;
-    const newUser = await User.create({ user_id, fName, lName });
-    res.status(201).json(newUser);
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username and password are required" });
+    }
+    // Auto incremented user ID
+    const lastUser = await User.findOne({ order: [["USER_ID", "DESC"]] });
+    const userId = lastUser ? lastUser.USER_ID + 1 : 1;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    // Create the user record
+    await User.create({
+      USER_ID: userId,
+      USERNAME: username,
+      PASSWORD: hashedPassword,
+    });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({ error: "Unable to create user" });
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
-// Get all users
-exports.getUsers = async (req, res) => {
+// Login user and generate JWT
+exports.loginUser = async (req, res) => {
   try {
-    const users = await User.findAll();
-    res.json(users);
+    const { USERNAME, PASSWORD } = req.body;
+    if (!USERNAME || !PASSWORD) {
+      return res
+        .status(400)
+        .json({ error: "Username and password are required" });
+    }
+    // Check user
+    const user = await User.findOne({ where: { USERNAME } });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid USERNAME or PASSWORD" });
+    }
+    // Compare the provided pwd
+    const isPASSWORDValid = await bcrypt.compare(PASSWORD, user.PASSWORD);
+    if (!isPASSWORDValid) {
+      return res.status(401).json({ error: "Invalid USERNAME or PASSWORD" });
+    }
+    // JWT token
+    const token = jwt.sign({ userId: user.USER_ID }, process.env.SECRET);
+    res.json({ token });
   } catch (error) {
-    console.error("Error getting users:", error);
-    res.status(500).json({ error: "Unable to retrieve users" });
+    console.error("Error logging in user:", error);
+    res.status(500).json({ error: "Unable to login user" });
   }
 };
 
-// Get a single user by userId
-exports.getUser = async (req, res) => {
-  const { userId } = req.params;
+// Get current user - protected
+exports.getCurrentUserProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(userId);
+    const { userId } = req.user;
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ["PASSWORD"] },
+    });
     if (user) {
       res.json(user);
     } else {
       res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
-    console.error("Error getting user:", error);
-    res.status(500).json({ error: "Unable to retrieve user" });
+    console.error("Error getting current user profile:", error);
+    res.status(500).json({ error: "Unable to retrieve user profile" });
   }
 };
 
-// Update a user by userId
-exports.updateUser = async (req, res) => {
-  const { userId } = req.params;
-  const { fName, lName } = req.body;
-
+//delete user
+exports.userDelete = async (req, res) => {
   try {
-    const user = await User.findByPk(userId);
-    if (user) {
-      user.fName = fName;
-      user.lName = lName;
-      await user.save();
-      res.json(user);
-    } else {
-      res.status(404).json({ error: "User not found" });
+    const USER_ID = req.params.USER_ID;
+    // Find the user by ID
+    const user = await User.findByPk(USER_ID);
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ error: "Unable to update user" });
-  }
-};
-
-// Delete a user by userId
-exports.deleteUser = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const user = await User.findByPk(userId);
-    if (user) {
-      await user.destroy();
-      res.json({ message: "User deleted successfully" });
-    } else {
-      res.status(404).json({ error: "User not found" });
-    }
+    // Delete the user
+    await user.destroy();
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Unable to delete user" });
+    res.status(500).json({ message: "Error deleting user" });
   }
 };

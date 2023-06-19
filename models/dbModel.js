@@ -9,6 +9,8 @@ exports.User = sequelize.define(
       type: DataTypes.INTEGER,
       primaryKey: true,
       allowNull: false,
+      autoIncrement: true,
+      defaultValue: 0,
     },
     USERNAME: {
       type: DataTypes.STRING,
