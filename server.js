@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 const app = express();
 app.use(bodyParser.json());
 
-User.sync();
+User.sync({ alter: true });
 
 app.use("/", require("./routes/userRoutes"));
 
