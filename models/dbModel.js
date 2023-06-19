@@ -6,8 +6,8 @@ const User = sequelize.define(
   {
     user_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       primaryKey: true,
+      allowNull: false,
     },
     fName: {
       type: DataTypes.STRING,
@@ -23,6 +23,4 @@ const User = sequelize.define(
     timestamps: false,
   }
 );
-console.log(User === sequelize.model.User);
-
 module.exports = User;
